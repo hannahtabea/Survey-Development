@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------------------
 # Template Factor analysis,
-# Author: Hannah Wnendt, draft: 30.04.2020
+# Author: Hannah Wnendt, draft: 21.11.2020
 # #--------------------------------------------------------------------------
 
 
@@ -30,8 +30,10 @@ raw_data <- d %>% mutate(subj = 1:nrow(d))
 #copy data to work with
 d <- raw_data
 
+# FOR REAL DATA ANALYSIS, SELECT SHORT VAR NAMES!!!
 #generate random sentences (=items) for every column except for subj,group and department (=3), 
 #length 7:12 words
+library(OpenRepGrid)
 colnames(d) [c(1:(length(d)-3))] <- randomSentences((length(d)-3), 7:12)
 
 #--------------------------------------------------------------------------
@@ -45,13 +47,22 @@ summary(imputed_Data)
 data_wide<-mice::complete(imputed_Data,1)
 colnames(data_wide) <- colnames(d)
 
+#------------------------
+# Fix singularity
+#------------------------
+# for this examplary dataset, select only half of the data to avoid singularity in correlation matrix 
+# = at least one variable can be expressed as a linear combination of the others, some variables might be redundant
+# create random column indexes
+random_cols <- sample(1:35,18)
+df <-data_wide[,random_cols]
+
 #-----------------------------------------------------------------------
 # CORRELATION MATRIX
 #-----------------------------------------------------------------------
 #to which extent do the scores for dimensions correlate with each other?
 
 # exclude subj ID and open questions
-df <- data_wide[,1:35]
+#df <- data_wide[,1:35]
 
 # calulate the correlations
 r <- round(cor(df, use= "pairwise.complete.obs"),2) 
@@ -61,7 +72,11 @@ r
 library(ggplot2)
 library(ggcorrplot)
 
-ggcorrplot(round(cor(raw_data[,1:35], use= "pairwise.complete.obs"),2), 
+#remove colnames for better readability of plots
+df_noname <- df
+colnames(df_noname) <- NULL
+
+ggcorrplot(round(cor(df_noname, use= "pairwise.complete.obs"),2), 
            hc.order = TRUE, 
            type = "lower",
            lab = TRUE)
@@ -69,7 +84,7 @@ ggcorrplot(round(cor(raw_data[,1:35], use= "pairwise.complete.obs"),2),
 #alternatives
 library(corrplot)
 library(RColorBrewer)
-corrplot(round(cor(raw_data[,1:35], use= "pairwise.complete.obs"),2), type="upper", order="hclust",
+corrplot(round(cor(df_noname, use= "pairwise.complete.obs"),2), type="upper", order="hclust",
          col=brewer.pal(n=8, name="RdYlBu"))
 
 # with histograms, significance levels and scatterplot
@@ -79,7 +94,7 @@ chart.Correlation(df, histogram=TRUE, pch=19)
 #---------------------------
 # Reliability coefficients
 # Estimate coefficient alpha
-alpha(data_wide)
+alpha(df)
 
 # Calculate split-half reliability
 splitHalf(r)
@@ -100,17 +115,20 @@ splitHalf(r)
 # plotnScree(nS) 
 
 # Screeplot (based on Eigenvalues) -> look for the point where the graph hits the line
+library(psych)
 scree(r, factors = FALSE)
 
 #-------------------------------------------------------------------------------------
 # ACTUAL FACTOR ANALYSIS
 #-------------------------------------------------------------------------------------
-EFA_model <- fa(df, nfactors = 8)
+EFA_model <- fa(df, nfactors = 5)
 
-# Interpretation Fit statistics
+# Interpretation Fit statistics (Hu and Bentler (1999))
 # Chi-square test: Non-significant result
-# Tucker Lewis Index (TLI): > 0.90
-# Root Mean Square Error of Approximation (RMSEA): < 0.05
+# Tucker Lewis Index (TLI): > 0.95
+# Root Mean Square Error of Approximation (RMSEA): < 0.06
+# Standardized Root Mean Square Residual (SRMR) < .08.
+
 
 # see results
 EFA_model
@@ -123,28 +141,29 @@ EFA_model$loadings
 # REFINE FACTOR ANALYSIS
 #-------------------------------------------------------------------------------------
 # drop poorly loading item
-df_34 <- df[,-35]
+df_16 <- df[,-c(2,11)]
 
 # Create new factor analysis
-EFA_model_34 <- fa(df_34,nfactors = 8)
+EFA_model_16 <- fa(df_16,nfactors = 5)
 
 # Factor loadings
-EFA_model_34$loadings
+EFA_model_16$loadings
 
 #-------------------------------------------------------------------------------------
 # SELECT BEST FITTING MODEL
 #-------------------------------------------------------------------------------------
 
-theory <- fa(df, nfactors = 4)
-eigen_35 <- fa(df, nfactors = 8)
-eigen_34 <- fa(df_34,nfactors = 8)
+theory <- fa(df, nfactors = 3)
+eigen_18 <- fa(df, nfactors = 5)
+eigen_16 <- fa(df_16,nfactors = 5)
 
 # Compare the BIC values, model with the lowest BIC is preferred, penalizes the complexity of the model
 theory$BIC
-eigen_34$BIC
-eigen_35$BIC
+eigen_18$BIC
+eigen_16$BIC
 
-anova(eigen_34,eigen_35)
+#compare first data-driven model against improved version
+anova(eigen_18,eigen_16)
 
 
 
