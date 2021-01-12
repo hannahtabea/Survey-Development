@@ -145,8 +145,7 @@ big5_CFAmodel2 <-'EXTRA =~ E7 + E12  + E22 + E27 + E37 + E42
                  AGREE =~ A4 + A9 + A14 + A19 + A24 + A49 
                 NEURO =~ N1 + N11 + N16 + N26 + N31 + N41
                 OPEN  =~ O13 + O23  + O33 + O38 + O48 + O53
-                CON   =~ C20 + C25 + C30 + C40 + C50 + C55
-                G     =~ EXTRA + CON + OPEN + AGREE + NEURO'
+                CON   =~ C20 + C25 + C30 + C40 + C50 + C55'
 
 # fit hopefully improved model
 big5_CFA2 <- cfa(model = big5_CFAmodel2,
@@ -175,6 +174,57 @@ anova(big5_CFA,big5_CFA2)
 fitmeasures(big5_CFA, c("aic","ecvi"))
 # smaller than the original model? :)
 fitmeasures(big5_CFA2, c("aic","ecvi"))
+
 #------------------------------------------------------------------------------------
 # What if the model did not converge? 
-# -> Heywood cases
+#------------------------------------------------------------------------------------
+
+# -> Heywood cases = correlationns between variables are out of bounds (sum up to > 1) or cfa includes negative variances
+
+# e.g. WARNING: covariance matrix of latent variables is not positive definite; use lavInspect(fit, "cov.lv") to investigate.
+#find the problem 
+# - are two of the latent variables so highly correlated they should be merged to a single one?
+# change formula
+summary(big5_CFA2, standardized = TRUE,
+        fit.measures = TRUE)
+
+# negative variances?
+# - are manifest variables non-normal/highly skewed?
+# - do the variables lie on a similar scale?
+
+big5_neg.model <-'EXTRA =~ E7 + E12  + E22 + E27 + E37 + E42   
+                 AGREE =~ A4 + A9 + A14 + A19 + A24 + A49 
+                 NEURO =~ N1 + N11 + N16 + N26 + N31 + N41
+                 OPEN  =~ O13 + O23  + O33 + O38 + O48 + O53
+                 CON   =~ C20 + C25 + C30 + C40 + C50 + C55
+                 G     =~ EXTRA + AGREE + NEURO + OPEN + CON'
+
+# fit hopefully improved model
+big5_neg.fit <- cfa(model = big5_neg.model,
+                 data = big5, estimator = "MLR")
+
+# find negative variance
+summary(big5_neg.fit, standardized = TRUE,
+        fit.measures = TRUE, rsquare = TRUE)
+
+# specify variance in the model manually
+as.data.frame(big5) %>% select(N1,N11,N16,N26,N31,N41) %>% var() %>% sum()
+
+big5_neg.model.corrected <-'EXTRA =~ E7 + E12  + E22 + E27 + E37 + E42   
+                             AGREE =~ A4 + A9 + A14 + A19 + A24 + A49 
+                             NEURO =~ N1 + N11 + N16 + N26 + N31 + N41
+                             OPEN  =~ O13 + O23  + O33 + O38 + O48 + O53
+                             CON   =~ C20 + C25 + C30 + C40 + C50 + C55
+                             G     =~ EXTRA + AGREE + NEURO + OPEN + CON
+                             NEURO ~~ 19.76 * NEURO '
+
+#try again
+big5_neg.fit.corrected <- cfa(model = big5_neg.model.corrected,
+                            data = big5, estimator = "MLR")
+
+# find negative variance
+summary(big5_neg.fit.corrected, standardized = TRUE,
+        fit.measures = TRUE, rsquare = TRUE)
+
+# does not work in this example either because model is theoretically misspecified (no g-factor)
+
