@@ -1,21 +1,9 @@
 #-------------------------------------------------------------------------------------------
-# Template Factor analysis,
-# Author: Hannah Wnendt, draft: 10.01.2020
+# Template Factor analysis
 # #--------------------------------------------------------------------------
 
 # Confirmatory Factor Analyis = Do number of factors match what is expected on the basis of theory?
 # Hypothesis-Testing of predefined structure of a latent variable
-
-
-
-# b) CFA (check multivariate normality, cfa with lavaan,
-# check loadings and summary statistics, what if it does not fit? (SEM with lavaan), plot pathplot)
-#---------------------------------------------
-
-
-
-
-
 
 # #--------------------------------------------------------------------------
 
@@ -35,12 +23,23 @@ data("big5")
 #---------------------------------------------------------------------------
 
 library(dplyr)
+
+prep_formula <- function(abbrev) {
+  
+  x <- as.data.frame(big5) %>% 
+    select(starts_with(abbrev)) %>% 
+    colnames() %>% noquote() %>% 
+    paste(collapse = " + ")
+  
+  return(x)
+}
+
 #save big5-specific item names
-extra_names <- as.data.frame(big5) %>% select(starts_with("E")) %>% colnames() 
-agree_names <- as.data.frame(big5) %>% select(starts_with("A")) %>% colnames() 
-neuro_names <- as.data.frame(big5) %>% select(starts_with("N")) %>% colnames() 
-open_names  <- as.data.frame(big5) %>% select(starts_with("O")) %>% colnames() 
-con_names  <- as.data.frame(big5) %>% select(starts_with("C")) %>% colnames() 
+extra_names <- prep_formula(abbrev = "E")
+agree_names <- prep_formula(abbrev = "A")
+neuro_names <- prep_formula(abbrev = "N") 
+open_names  <- prep_formula(abbrev = "O") 
+con_names  <-  prep_formula(abbrev = "C")
 
 #-----------------------------------------------------------------------------------
 # prepare syntax
