@@ -5,19 +5,31 @@
 # Confirmatory Factor Analyis = Do number of factors match what is expected on the basis of theory?
 # Hypothesis-Testing of predefined structure of a latent variable
 
-# #--------------------------------------------------------------------------
-
-current_date <- Sys.Date()
-
-#--------------------------------------------------------------------------
-
 #--------------------------------------------------------------------------
 # load data
 #--------------------------------------------------------------------------
 
-library(qgraph)
-data("big5")
+library(data.table)
+big5_huge <- fread('IPIP-FFM-data-8Nov2018.csv', select = seq(1:50))
 
+recode_var <- function(x) (
+  dplyr::recode(x,
+         `1`= 5L,
+         `2`= 4L,
+         `3`= 3L,
+         `4` = 2L,
+         `5` = 1L)
+)
+
+library(hablar)
+big5 <- big5_huge %>% 
+        sample_n(500) %>% 
+        retype() %>%
+        mutate_at(c("EXT2","EXT4","EXT6","EXT8","EXT10",
+                    "EST2","EST4",
+                    "AGR1","AGR3","AGR5","AGR7",
+                    "CSN2","CSN4","CSN6","CSN8",
+                    "OPN2","OPN4","OPN6"), recode_var)
 #---------------------------------------------------------------------------
 # prepare lavaan syntax
 #---------------------------------------------------------------------------
@@ -35,47 +47,42 @@ prep_formula <- function(abbrev) {
 }
 
 #save big5-specific item names
-extra_names <- prep_formula(abbrev = "E")
-agree_names <- prep_formula(abbrev = "A")
-neuro_names <- prep_formula(abbrev = "N") 
-open_names  <- prep_formula(abbrev = "O") 
-con_names  <-  prep_formula(abbrev = "C")
-
-#-----------------------------------------------------------------------------------
-# prepare syntax
-#-----------------------------------------------------------------------------------
-
-library(lavaan)
-
-big5_CFAmodel <- 'EXTRA =~ E2 + E7 + E12  + E22 + E27 + E32 + E37 + E42
-                  AGREE =~ A4 + A9 + A14 + A19 + A24 + A29 + A34 + A39
-                  NEURO =~ N1 + N6 + N11 + N16 + N21 + N26 + N31 + N36
-                  OPEN  =~ O3 + O8 + O13 + O18 + O23 + O28 + O33 + O38 
-                  CON   =~ C5 + C10 + C15 + C20 + C25 + C30 + C40 + C45'
-
-# EXTRA ~ NEURO -> neuroticism predicts extraversion directly
-# EXTRA ~~ NEURO -> extraversion is expected to covary with neuroticism
-# EXTRA ~~ 0*NEURO -> extraversion and neuroticism are not expected to correlate at all
-
+set.seed(27)
+extra_names <- prep_formula(abbrev = "EXT")
+agree_names <- prep_formula(abbrev = "AGR")
+emo_names <- prep_formula(abbrev = "EST") 
+open_names  <- prep_formula(abbrev = "OPN") 
+con_names  <-  prep_formula(abbrev = "CSN")
 #---------------------------------------------------------------------------
 # check assumptions 
 #---------------------------------------------------------------------------
 
-#save selected variables in dataframe
-big5_selection <-as.data.frame(big5) %>% select(E2,E7,E12,E22,E27,E32,E37,E42,
-                                                A4,A9,A14,A19,A24,A29,A34,A39, 
-                                                N1,N6,N11,N16,N21,N26,N31,N36,
-                                                O3,O8,O13,O18,O23,O28,O33,O38,
-                                                C15,C20,C25,C30,C40,C45)
-
 library(psych)
 # Mardia test of multivariate normality
-mardia(big5_selection)
+QuantPsyc::mult.norm(big5)$mult.test
 
 # CFAs are based on chi-squared tests and therefore assume normally distributed residuals
 # if p-values for skew and kurtosis are < .05,
 # it appears that the distributions differ from a normal distribution.
 # -> need correction
+
+#-----------------------------------------------------------------------------------
+# specify BASIC BIG 5 model
+#-----------------------------------------------------------------------------------
+
+library(lavaan)
+# latent variables can be named anything except for variable names from the dataset
+# 'LATENT =~ manifest1 + manifest2 + ....'
+big5_CFAmodel <- 'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10 
+                  AGREE =~ AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10
+                  EMO   =~ EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 
+                  OPEN  =~ OPN1 + OPN2 + OPN3 + OPN4 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10 
+                  CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + CSN10'
+
+# EXTRA ~ NEURO -> neuroticism predicts extraversion directly
+# EXTRA ~~ NEURO -> extraversion is expected to covary with neuroticism
+# EXTRA ~~ 0*NEURO -> extraversion and neuroticism are not expected to correlate at all
+
 
 #-----------------------------------------------------------------------------------
 # Fit the model to the data using robust standard errors
@@ -84,11 +91,10 @@ mardia(big5_selection)
 big5_CFA <- cfa(model = big5_CFAmodel,
                         data = big5, estimator = "MLR")
 
-#-----------------------------------------------------------------------------------
-# Summarize results --
-# Include fit measures and standardized estimates
-#-----------------------------------------------------------------------------------
 
+#-----------------------------------------------------------------------------------
+# Fit the model to the data using robust standard errors
+#-----------------------------------------------------------------------------------
 summary(big5_CFA, fit.measures = TRUE,
         standardized = TRUE)
 # interpretation for good model fit:
@@ -97,8 +103,10 @@ summary(big5_CFA, fit.measures = TRUE,
 # Tucker-Lewis index (TLI) > .90
 # Root mean square error of approximation (RMSEA) < .05
 
-# Covariance = amount by which 2 variables change together (standardized.all)
-# -> overlap in the data = covariance squared
+# Covariance = amount by which two variables change together (standardized.all)
+# -> overlap in the data  = correlation squared
+# e.g., EXTRA ~~ NEURO correlate negatively by - 0.64, EXTRA ~~ OPEN by 0.4 which means that they share 16% of the variance in the data
+# standardized loading show to which degree the latent variable can be measured by each indicator/item
 
 #-------------------------------
 # shortcut
@@ -118,9 +126,72 @@ fitMeasures(big5_CFA,
 inspect(big5_CFA, "std")$lambda
 
 
-
 #fit statistics in standardized format
-results <- standardizedsolution(big5_CFA)
+standardizedsolution(big5_CFA)
+
+
+#------------------------------------------------------------------------------------
+# Adjust the model - HIGHER ORDER MODEL
+#------------------------------------------------------------------------------------
+
+# adjust model structure
+big5_CFAmodel_higher_order<-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT7 + EXT8 + EXT9 + EXT10
+                             AGREE =~ AGR1 + AGR2 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10
+                             EMO   =~ EST1 + EST2 + EST3 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10
+                             OPEN  =~ OPN1 + OPN2 + OPN3 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10
+                             CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9
+                             ALPHA =~ AGREE + CON + EMO
+                             BETA =~ EXTRA + OPEN'
+
+# # fit hopefully improved model
+big5_CFA_higher_order <- cfa(model = big5_CFAmodel_higher_order,
+                data = big5, estimator = "MLR")
+
+summary(big5_CFA_higher_order, fit.measures = TRUE,
+        standardized = TRUE, rsquare = TRUE)
+
+# get fit indices
+fitMeasures(big5_CFA_higher_order,
+            fit.measures = c("cfi","tli", "rmsea"))
+
+#------------------------------------------------------------------------------------
+# Adjust the model - BLENDED MODEL
+#------------------------------------------------------------------------------------
+
+#EXTRA =~ AGR2 (I am interested in people.) AGR7 (I am not really interested in others.)
+#OPEN =~ CSN10 (I am exacting in my work.) EXT6 (I have little to say.)
+#AGREE =~ EST3 (I worry about things.) EXT3 (I feel comfortable around people.)
+#EMO =~ CSN4 (I make a mess of things.) AGR10 (I make people feel at ease.??) + AGR6 (I have a soft heart.)
+#CON =~ OPN7 (I am quick to understand things.) OPN9 (I spend time reflecting on things.)
+big5_CFAmodel_blended <-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT7 + EXT8 + EXT9 + EXT10 + AGR2 + AGR7
+                         AGREE =~ AGR1 + AGR2 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10 + EST3 + EXT3
+                         EMO   =~ EST1 + EST2 + EST3 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 + CSN4 + AGR6
+                         OPEN  =~ OPN1 + OPN2 + OPN3 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10 + CSN10 + EXT6
+                         CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + OPN7 + OPN9'
+
+big5_CFA_blended <- cfa(model = big5_CFAmodel_blended,
+                        data = big5, estimator = "MLR")
+
+summary(big5_CFA_blended, fit.measures = TRUE,
+        standardized = TRUE)
+
+# get fit indices
+fitMeasures(big5_CFA_blended,
+            fit.measures = c("cfi","tli", "rmsea"))
+
+
+#------------------------------------------------------------------------------------
+# Compare models
+#------------------------------------------------------------------------------------
+
+# only useful for models with same variables and different specification
+# anova(big5_CFA_blended,big5_CFA)
+
+# fit index comparison - akaike information criterion = estimator of prediction error and thereby relative quality of statistical models for a given set of data.
+# ecvi = expected cross validation index = likelihood this model will replicate with the same sample size and population
+fitmeasures(big5_CFA_blended, c("aic","ecvi"))
+# smaller than the original model?)
+fitmeasures(big5_CFA, c("aic","ecvi"))
 
 #-----------------------------------------------------------------------------------
 # Plot the factor structure
@@ -129,57 +200,22 @@ results <- standardizedsolution(big5_CFA)
 # load semPlot
 library(semPlot)
 # diagram model
-semPaths(big5_CFA,
-         whatLabels = "std",
-         edge.label.cex = 1,
-         layout = "tree", rotation = 2)
+semPaths(big5_CFA, layout = "tree")
+semPaths(big5_CFA_higher, layout = "tree")
+
+cormat_big5 <- cor(big5)
+library(corrplot)
+corrplot(cormat_big5, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, tl.cex = 0.5)
 
 #------------------------------------------------------------------------------------
-# Improve poor-fittig model
+# What if the model still did not converge? 
 #------------------------------------------------------------------------------------
-
-# remove poorly loading variables and replace them
-# adjust model structure
-big5_CFAmodel2 <-'EXTRA =~ E7 + E12  + E22 + E27 + E37 + E42   
-                 AGREE =~ A4 + A9 + A14 + A19 + A24 + A49 
-                NEURO =~ N1 + N11 + N16 + N26 + N31 + N41
-                OPEN  =~ O13 + O23  + O33 + O38 + O48 + O53
-                CON   =~ C20 + C25 + C30 + C40 + C50 + C55'
-
-# fit hopefully improved model
-big5_CFA2 <- cfa(model = big5_CFAmodel2,
-                data = big5, estimator = "MLR")
-
-# get loadings
-inspect(big5_CFA2, "std")$lambda
-
-
-# get fit indices
-fitMeasures(big5_CFA2,
-            fit.measures = c("cfi","tli", "rmsea"))
-
 # get modification indices -> suggested changes on the model and what would happen to the estimates if it was added
 # change model one by one
-modificationindices(big5_CFA2, sort = TRUE)
-
-#------------------------------------------------------------------------------------
-# Compare models
-#------------------------------------------------------------------------------------
-
-# only useful for models with same variables and different specification
-anova(big5_CFA,big5_CFA2)
-
-# fit index comparison
-fitmeasures(big5_CFA, c("aic","ecvi"))
-# smaller than the original model? :)
-fitmeasures(big5_CFA2, c("aic","ecvi"))
-
-#------------------------------------------------------------------------------------
-# What if the model did not converge? 
-#------------------------------------------------------------------------------------
+modificationindices(big5_CFA, sort = TRUE)
 
 # -> Heywood cases = correlationns between variables are out of bounds (sum up to > 1) or cfa includes negative variances
-
 # e.g. WARNING: covariance matrix of latent variables is not positive definite; use lavInspect(fit, "cov.lv") to investigate.
 #find the problem 
 # - are two of the latent variables so highly correlated they should be merged to a single one?
@@ -191,39 +227,8 @@ summary(big5_CFA2, standardized = TRUE,
 # - are manifest variables non-normal/highly skewed?
 # - do the variables lie on a similar scale?
 
-big5_neg.model <-'EXTRA =~ E7 + E12  + E22 + E27 + E37 + E42   
-                 AGREE =~ A4 + A9 + A14 + A19 + A24 + A49 
-                 NEURO =~ N1 + N11 + N16 + N26 + N31 + N41
-                 OPEN  =~ O13 + O23  + O33 + O38 + O48 + O53
-                 CON   =~ C20 + C25 + C30 + C40 + C50 + C55
-                 G     =~ EXTRA + AGREE + NEURO + OPEN + CON'
-
-# fit hopefully improved model
-big5_neg.fit <- cfa(model = big5_neg.model,
-                 data = big5, estimator = "MLR")
-
-# find negative variance
-summary(big5_neg.fit, standardized = TRUE,
-        fit.measures = TRUE, rsquare = TRUE)
-
-# specify variance in the model manually
-as.data.frame(big5) %>% select(N1,N11,N16,N26,N31,N41) %>% var() %>% sum()
-
-big5_neg.model.corrected <-'EXTRA =~ E7 + E12  + E22 + E27 + E37 + E42   
-                             AGREE =~ A4 + A9 + A14 + A19 + A24 + A49 
-                             NEURO =~ N1 + N11 + N16 + N26 + N31 + N41
-                             OPEN  =~ O13 + O23  + O33 + O38 + O48 + O53
-                             CON   =~ C20 + C25 + C30 + C40 + C50 + C55
-                             G     =~ EXTRA + AGREE + NEURO + OPEN + CON
-                             NEURO ~~ 19.76 * NEURO '
-
-#try again
-big5_neg.fit.corrected <- cfa(model = big5_neg.model.corrected,
-                            data = big5, estimator = "MLR")
-
-# find negative variance
-summary(big5_neg.fit.corrected, standardized = TRUE,
-        fit.measures = TRUE, rsquare = TRUE)
-
-# does not work in this example either because model is theoretically misspecified (no g-factor)
+# adjust for negative variances by specifying variance in the model manually
+as.data.frame(big5) %>% select(starts_with("AGR")) %>% var() %>% sum()
+as.data.frame(big5) %>% select(starts_with("EST")) %>% var() %>% sum()
+as.data.frame(big5) %>% select(starts_with("CSN")) %>% var() %>% sum()
 
