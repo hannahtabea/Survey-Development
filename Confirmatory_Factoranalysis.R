@@ -96,15 +96,6 @@ big5_CFA_orthogonal <- cfa(model = big5_CFAmodel,
 # EXTRA ~~ NEURO -> extraversion is expected to covary with neuroticism
 # EXTRA ~~ 0*NEURO -> extraversion and neuroticism are not expected to correlate at all
 
-
-#-----------------------------------------------------------------------------------
-# Fit the model to the data using robust standard errors
-#-----------------------------------------------------------------------------------
-
-big5_CFA_orthogonal <- cfa(model = big5_CFAmodel,
-                        data = big5, estimator = "MLM", std.lv=TRUE)
-
-
 #-----------------------------------------------------------------------------------
 # Fit the model to the data using robust standard errors
 #-----------------------------------------------------------------------------------
@@ -116,8 +107,8 @@ summary(big5_CFA_orthogonal, fit.measures = TRUE,
 # shortcut
 # Access individual fit measures
 #-------------------------------
-fitMeasures(big5_CFA,
-            fit.measures = c("cfi","tli", "rmsea"))
+fitMeasures(big5_CFA_orthogonal,
+            fit.measures = c("cfi","srmr", "rmsea"))
 
 # interpretation for good model fit:
 # Chi-squared p-value <. 05 (depends on sample size)
@@ -144,21 +135,23 @@ fitMeasures(big5_CFA,
 big5_CFA <- cfa(model = big5_CFAmodel,
                    data = big5, estimator = "MLM", std.lv=TRUE)
 
-summary(big5_CFA, fit.measures = TRUE,
+summary(big5_CFA, fit.measures = T110RUE,
         standardized = TRUE, rsquare = TRUE)
 
 fitMeasures(big5_CFA,
-            fit.measures = c("cfi","tli", "rmsea"))
+            fit.measures = c("cfi","srmr", "rmsea"))
 #------------------------------------------------------------------------------------
 # Adjust the model - COMMON METHOD VARIANCE
 #------------------------------------------------------------------------------------
-big5_CFAmodel_cmv <-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT7 + EXT8 + EXT9 + EXT10 
-                     AGREE =~ AGR1 + AGR2 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10 
-                     EMO   =~ EST1 + EST2 + EST3 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 
-                     OPEN  =~ OPN1 + OPN2 + OPN3 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10 
-                     CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9  
-                     CMV   =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT7 + EXT8 + EXT9 + EXT10 + AGR1 + AGR2 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10 + CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + EST1 + EST2 + EST3 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 + OPN1 + OPN2 + OPN3 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10
+big5_CFAmodel_cmv <-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10 
+                     AGREE =~ AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10
+                     EMO   =~ EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 
+                     OPEN  =~ OPN1 + OPN2 + OPN3 + OPN4 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10 
+                     CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + CSN10
+                    
+                     CMV   =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10 + AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10 + CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + CSN10 + EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 + OPN1 + OPN2 + OPN3 + OPN4 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10
                      EXTRA + AGREE + EMO + OPEN + CON ~~ 0*CMV'
+                 #    EST7 ~~  EST8'
 
 big5_CFA_cmv <- cfa(model = big5_CFAmodel_cmv,
                         data = big5, estimator = "MLM", std.lv=TRUE)
@@ -168,7 +161,7 @@ summary(big5_CFA_cmv, fit.measures = TRUE,
 
 # get fit indices
 fitMeasures(big5_CFA_cmv,
-            fit.measures = c("cfi","tli", "rmsea"))
+            fit.measures = c("cfi","srmr", "rmsea"))
 
 
 #------------------------------------------------------------------------------------
@@ -176,14 +169,14 @@ fitMeasures(big5_CFA_cmv,
 #------------------------------------------------------------------------------------
 
 # adjust model structure
-big5_CFAmodel_higher_order<-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT7 + EXT8 + EXT9 + EXT10
-                             AGREE =~ AGR1 + AGR2 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10
-                             EMO   =~ EST1 + EST2 + EST3 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10
-                             OPEN  =~ OPN1 + OPN2 + OPN3 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10
-                             CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9
+big5_CFAmodel_higher_order<-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10 
+                             AGREE =~ AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10
+                             EMO   =~ EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 
+                             OPEN  =~ OPN1 + OPN2 + OPN3 + OPN4 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10 
+                             CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + CSN10
+
                              ALPHA =~ AGREE + CON + EMO
-                             BETA =~ EXTRA + OPEN
-                             ALPHA  ~~ 0*BETA '
+                             BETA =~ EXTRA + OPEN'
 
 # # fit hopefully improved model
 big5_CFA_higher_order <- cfa(model = big5_CFAmodel_higher_order,
@@ -194,17 +187,44 @@ summary(big5_CFA_higher_order, fit.measures = TRUE,
 
 # get fit indices
 fitMeasures(big5_CFA_higher_order,
-            fit.measures = c("cfi","tli", "rmsea"))
+            fit.measures = c("cfi","srmr", "rmsea"))
+
+#------------------------------------------------------------------------------------
+# Adjust the model - Combined
+#------------------------------------------------------------------------------------
+big5_CFAmodel_combined <-'   EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10 
+                             AGREE =~ AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10
+                             EMO   =~ EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 
+                             OPEN  =~ OPN1 + OPN2 + OPN3 + OPN4 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10 
+                             CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + CSN10
+
+                             ALPHA =~ AGREE + CON + EMO
+                             BETA =~ EXTRA + OPEN
+
+                             CMV   =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10 + AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10 + CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + CSN10 + EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 + OPN1 + OPN2 + OPN3 + OPN4 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10
+                             EXTRA + AGREE + EMO + OPEN + CON ~~ 0*CMV'
+
+# # fit hopefully improved model
+big5_combined <- cfa(model = big5_CFAmodel_combined,
+                             data = big5, estimator = "MLM", std.lv=TRUE)
+
+summary(big5_CFA_combined, fit.measures = TRUE,
+        standardized = TRUE, rsquare = TRUE)
+
+# get fit indices
+fitMeasures(big5_CFA_combined,
+            fit.measures = c("cfi","srmr", "rmsea"))
+
 #------------------------------------------------------------------------------------
 # Adjust the model - UNBALANCED HIERARCHY MODEL
 #------------------------------------------------------------------------------------
 
 # adjust model structure
-big5_CFAmodel_unbalanced<-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT7 + EXT8 + EXT9 + EXT10
-                             AGREE =~ AGR1 + AGR2 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10
-                             EMO   =~ EST1 + EST2 + EST3 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10
-                             OPEN  =~ OPN1 + OPN2 + OPN3 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10
-                             CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9
+big5_CFAmodel_unbalanced<-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10
+                             AGREE =~ AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10
+                             EMO   =~ EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10
+                             OPEN  =~ OPN1 + OPN2 + OPN3 + OPN4 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10
+                             CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + CSN10
                              EMO ~ AGREE + CON 
                              EXTRA ~ OPEN'
 
@@ -217,7 +237,7 @@ summary(big5_CFA_unbalanced, fit.measures = TRUE,
 
 # get fit indices
 fitMeasures(big5_CFA_unbalanced,
-            fit.measures = c("cfi","tli", "rmsea"))
+            fit.measures = c("cfi","srmr", "rmsea"))
 
 #------------------------------------------------------------------------------------
 # Adjust the model - BLENDED MODEL
@@ -229,11 +249,11 @@ modi <- modificationIndices(big5_CFA, sort. = TRUE)
 #AGREE =~ EXT8 (I don't like to draw attention to myself.) EXT5 (I worry about things.) EXT3 (I feel comfortable around people.)
 #EMO =~ CSN4 (I make a mess of things.) > AGR7 (I am not really interested in others.???) > AGR6 (I have a soft heart.) 
 #CON =~ AGR3(I insult people.) > EST3(I worry about things.???) OPN5(I have excellent ideas.) (I am quick to understand things.) OPN9 (I spend time reflecting on things.)
-big5_CFAmodel_blended <-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT7 + EXT8 + EXT9 + EXT10 + AGR2 + AGR7
-                         AGREE =~ AGR1 + AGR2 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10 + EST8 
-                         EMO   =~ EST1 + EST2 + EST3 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 + AGR6
-                         OPEN  =~ OPN1 + OPN2 + OPN3 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10 + CSN10 + EXT6
-                         CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + EST3 '
+big5_CFAmodel_blended <-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10 + AGR2 + AGR7
+                         AGREE =~ AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10 + EST8 
+                         EMO   =~ EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 + AGR6
+                         OPEN  =~ OPN1 + OPN2 + OPN3 + OPN4 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10 + CSN10 + EXT6
+                         CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + CSN10 + EST3 '
 
 big5_CFA_blended <- cfa(model = big5_CFAmodel_blended,
                         data = big5, estimator = "MLM", std.lv=TRUE)
@@ -243,7 +263,7 @@ summary(big5_CFA_blended, fit.measures = TRUE,
 
 # get fit indices
 fitMeasures(big5_CFA_blended,
-            fit.measures = c("cfi","tli", "rmsea"))
+            fit.measures = c("cfi","srmr", "rmsea"))
 
 
 #------------------------------------------------------------------------------------
@@ -264,7 +284,6 @@ fitmeasures(big5_CFA, c("aic","ecvi"))
 #fitmeasures(big5_CFA_blended, c("aic","ecvi"))
 #fitmeasures(big5_CFA_higher_order, c("aic","ecvi"))
 #fitmeasures(big5_CFA_unbalanced, c("aic","ecvi"))
-#fitmeasures(big5_CFA_cmv, c("aic","ecvi")) # winning model!
 
 
 #-----------------------------------------------------------------------------------
