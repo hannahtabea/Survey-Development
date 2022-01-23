@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------------------
-# Template Factor analysis
+# Template CFA
 # #--------------------------------------------------------------------------
 
 # Confirmatory Factor Analyis = Do number of factors match what is expected on the basis of theory?
@@ -30,11 +30,11 @@ big5 <- big5_huge %>%
   sample_n(10000) %>% 
   # recode reverse coded items
   mutate_at(c("EXT2","EXT4","EXT6","EXT8","EXT10",
-              "EST1","EST3","EST5","EST6","EST7","EST8","EST9","EST10",
+              'EST1','EST3',"EST5", "EST7", "EST8", "EST9", "EST10", 
               "AGR1","AGR3","AGR5","AGR7",
               "CSN2","CSN4","CSN6","CSN8",
               "OPN2","OPN4","OPN6"), 
-            funs(recode(., `1`= 5L, `2`= 4L, `4`= 2L, `5`= 1L, .default = 3L)))
+            list(~ recode(., `1`= 5L, `2`= 4L, `4`= 2L, `5`= 1L, .default = 3L)))
 
 # get some descriptives
 skimr::skim(big5)
@@ -60,6 +60,23 @@ emo_names <- prep_formula(abbrev = "EST")
 open_names  <- prep_formula(abbrev = "OPN") 
 con_names  <-  prep_formula(abbrev = "CSN")
 
+# general syntax
+myModel <- ' # regressions
+               LATENT1 ~ LATENT2 + LATENT3 
+              
+
+             # latent variable definitions 
+               LATENT1 =~ manifestvar1 + manifestvar2 + manifestvar3 
+               LATENT2 =~ manifestvar4 + manifestvar5 + manifestvar6 
+               LATENT3 =~ manifestvar7 + manifestvar8 + manifestvar9 
+
+             # covariances  
+               LATENT1 ~~ LATENT2 
+
+             # intercepts 
+               LATENT2 ~ 1 
+           '
+
 #---------------------------------------------------------------------------
 # check assumptions 
 #---------------------------------------------------------------------------
@@ -79,36 +96,17 @@ psych::mardia(big5, plot = FALSE)
 library(lavaan)
 # latent variables can be named anything except for variable names from the dataset
 # 'LATENT =~ manifest1 + manifest2 + ....'
-big5_CFAmodel <- 'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10 
-                  AGREE =~ AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10
-                  EMO   =~ EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 
-                  OPEN  =~ OPN1 + OPN2 + OPN3 + OPN4 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10 
-                  CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + CSN10'
+big5_CFA_model <- 'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10 
+                   AGREE =~ AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10
+                   EMO   =~ EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 
+                   OPEN  =~ OPN1 + OPN2 + OPN3 + OPN4 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10 
+                   CON   =~ CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + CSN10'
 
-#-----------------------------------------------------------------------------------
-# Fit the model to the data using robust standard errors
-#-----------------------------------------------------------------------------------
-
-big5_CFA_orthogonal <- cfa(model = big5_CFAmodel,
-                            data = big5, estimator = "MLM", std.lv=TRUE, orthogonal = TRUE)
 
 # EXTRA ~ NEURO -> neuroticism predicts extraversion directly
 # EXTRA ~~ NEURO -> extraversion is expected to covary with neuroticism
 # EXTRA ~~ 0*NEURO -> extraversion and neuroticism are not expected to correlate at all
 
-#-----------------------------------------------------------------------------------
-# Fit the model to the data using robust standard errors
-#-----------------------------------------------------------------------------------
-
-summary(big5_CFA_orthogonal, fit.measures = TRUE,
-        standardized = TRUE, rsquare = TRUE)
-
-#-------------------------------
-# shortcut
-# Access individual fit measures
-#-------------------------------
-fitMeasures(big5_CFA_orthogonal,
-            fit.measures = c("cfi","srmr", "rmsea"))
 
 # interpretation for good model fit:
 # Chi-squared p-value <. 05 (depends on sample size)
@@ -132,10 +130,10 @@ fitMeasures(big5_CFA_orthogonal,
 # Check model that allows covariances among latent variables
 #------------------------------------------------------------------------------------
 
-big5_CFA <- cfa(model = big5_CFAmodel,
+big5_CFA <- cfa(model = big5_CFA_model,
                    data = big5, estimator = "MLM", std.lv=TRUE)
 
-summary(big5_CFA, fit.measures = T110RUE,
+summary(big5_CFA, fit.measures = TRUE,
         standardized = TRUE, rsquare = TRUE)
 
 fitMeasures(big5_CFA,
@@ -151,7 +149,6 @@ big5_CFAmodel_cmv <-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + E
                     
                      CMV   =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10 + AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10 + CSN1 + CSN2 + CSN3 + CSN4 + CSN5 + CSN6 + CSN7 + CSN8 + CSN9 + CSN10 + EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 + OPN1 + OPN2 + OPN3 + OPN4 + OPN5 + OPN6 + OPN7 + OPN8 + OPN9 + OPN10
                      EXTRA + AGREE + EMO + OPEN + CON ~~ 0*CMV'
-                 #    EST7 ~~  EST8'
 
 big5_CFA_cmv <- cfa(model = big5_CFAmodel_cmv,
                         data = big5, estimator = "MLM", std.lv=TRUE)
@@ -163,6 +160,15 @@ summary(big5_CFA_cmv, fit.measures = TRUE,
 fitMeasures(big5_CFA_cmv,
             fit.measures = c("cfi","srmr", "rmsea"))
 
+#-----------------------------------------------------------------------------------
+# Adjust the model - orthogonal dimensions
+#-----------------------------------------------------------------------------------
+
+big5_CFA_orthogonal <- cfa(model = big5_CFA_model,
+                           data = big5, estimator = "MLM", std.lv=TRUE, orthogonal = TRUE)
+
+summary(big5_CFA_model, fit.measures = TRUE,
+        standardized = TRUE,  rsquare = TRUE)
 
 #------------------------------------------------------------------------------------
 # Adjust the model - HIGHER ORDER MODEL
@@ -244,11 +250,11 @@ fitMeasures(big5_CFA_unbalanced,
 #------------------------------------------------------------------------------------
 
 modi <- modificationIndices(big5_CFA, sort. = TRUE)
-#EXTRA =~  AGR7 (I am not really interested in others.) > AGR6(I have a soft heart.???) > EST10 (I often feel blue.???) > AGR4(I sympathize with others' feelings.???) > AGR2 (I am interested in people.)
+#EXTRA =~  AGR7 (I am not really interested in others.) AGR4(I sympathize with others' feelings.???) > AGR2 (I am interested in people.)
 #OPEN =~ CSN10 (I am exacting in my work.) > EXT6 (I have little to say.)
-#AGREE =~ EXT8 (I don't like to draw attention to myself.) EXT5 (I worry about things.) EXT3 (I feel comfortable around people.)
-#EMO =~ CSN4 (I make a mess of things.) > AGR7 (I am not really interested in others.???) > AGR6 (I have a soft heart.) 
-#CON =~ AGR3(I insult people.) > EST3(I worry about things.???) OPN5(I have excellent ideas.) (I am quick to understand things.) OPN9 (I spend time reflecting on things.)
+#AGREE =~ EXT8 (I don't like to draw attention to myself.) 
+#EMO =~ AGR6 (I have a soft heart.) 
+#CON =~  EST3(I worry about things.) 
 big5_CFAmodel_blended <-'EXTRA =~ EXT1 + EXT2 + EXT3 + EXT4 + EXT5 + EXT6 + EXT7 + EXT8 + EXT9 + EXT10 + AGR2 + AGR7
                          AGREE =~ AGR1 + AGR2 + AGR3 + AGR4 + AGR5 + AGR6 + AGR7 + AGR8 + AGR9 + AGR10 + EST8 
                          EMO   =~ EST1 + EST2 + EST3 + EST4 + EST5 + EST6 + EST7 + EST8 + EST9 + EST10 + AGR6
@@ -277,9 +283,9 @@ fitMeasures(big5_CFA_blended,
 # ecvi = expected cross validation index = likelihood this model will replicate with the same sample size and population
 
 fitmeasures(big5_CFA_orthogonal, c("aic","ecvi"))
-fitmeasures(big5_CFA_cmv, c("aic","ecvi")) # winning model!
+fitmeasures(big5_CFA_cmv, c("aic")) 
 # smaller than the original model?)
-fitmeasures(big5_CFA, c("aic","ecvi"))
+fitmeasures(big5_CFA, c("aic"))
 
 #fitmeasures(big5_CFA_blended, c("aic","ecvi"))
 #fitmeasures(big5_CFA_higher_order, c("aic","ecvi"))
@@ -292,10 +298,10 @@ fitmeasures(big5_CFA, c("aic","ecvi"))
 
 # load semPlot
 library(semPlot)
-# diagram model
-semPaths(big5_CFA,  curvePivot = TRUE)
-semPaths(big5_CFA_orthogonal, curvePivot = TRUE)
-semPaths(big5_CFA_cmv, curvePivot = TRUE)
+
+semPaths(big5_CFA)
+semPaths(big5_CFA_orthogonal)
+semPaths(big5_CFA_cmv)
 
 cormat_big5 <- cor(big5)
 library(corrplot)
